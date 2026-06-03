@@ -92,13 +92,13 @@
         <p>数据来源：国家统计局 / 历年农业统计资料 | 单位：万吨</p>
     </div>
     <div class="subnote">
-        <span>📈 交互特性：鼠标拖拽平移、滚轮缩放、点击数据点查看详情</span>
-        <span class="legend-tip">✅ 折线图 + 面积填充效果</span>
+        <!-- <span>📈 交互特性：鼠标拖拽平移、滚轮缩放、点击数据点查看详情</span>
+        <span class="legend-tip">✅ 折线图 + 面积填充效果</span> -->
     </div>
     <!-- ECharts 容器 -->
     <div id="mainChart"></div>
     <div class="footer">
-        ⚡ 注：1949–2024 年稻谷产量数据，包含2000年后完整统计。图表支持缩放/区域选择。
+        ⚡ 注：1949–2024 年稻谷产量数据，包含2000年后完整统计。
     </div>
 </div>
 
@@ -343,13 +343,14 @@
             }
         ],
         // 增加一个小注释: 在图表角落加个标
+        // | 稻谷总产突破2亿吨后高位波动
         graphic: [
             {
                 type: 'text',
                 left: '2%',
                 top: 20,
                 style: {
-                    text: '🏭 1949~2024 | 稻谷总产突破2亿吨后高位波动',
+                    text: '🏭 1949~2024 ',
                     fill: '#6f8f9f',
                     fontSize: 11,
                     fontWeight: 'normal'
@@ -369,7 +370,7 @@
 
     // 额外：完全支持缩放后，如果用户想查看指定年代区间，可使用toolbox或滚动条。
     // 由于我们同时配置了 inside + slider dataZoom，交互体验很棒
-    console.log('交互折线图已加载，支持鼠标拖拽平移和滚轮缩放');
+    // console.log('交互折线图已加载，支持鼠标拖拽平移和滚轮缩放');
 </script>
 </body>
 </html>
