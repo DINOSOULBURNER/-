@@ -18,7 +18,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            min-height: 70vh;
             padding: 24px;
         }
         .chart-container {
@@ -308,16 +308,16 @@
                 // 标记特殊节点 (可选: 展示历年峰值或者2003年低谷)
                 markPoint: {
                     data: [
-                        { type: 'max', name: '历史最高产量', symbolSize: 48 },
-                        { type: 'min', name: '历史最低产量', symbolSize: 40 },
+                        { type: 'max', name: '历史最高产量', symbolSize: 18 },
+                        { type: 'min', name: '历史最低产量', symbolSize: 15 },
                         { coord: [2003, 16065.56], name: '2003年低点', value: 16065.56 }
                     ],
                     symbol: 'circle',
-                    symbolSize: 50,
+                    symbolSize: 16,
                     label: {
                         formatter: function(params) {
-                            if (params.name === '历史最高产量') return `🔝 峰值 ${params.value.toFixed(0)}万t`;
-                            if (params.name === '历史最低产量') return `📉 谷值 ${params.value.toFixed(0)}万t`;
+                            if (params.name === '历史最高产量') return `🔝 峰值 ${params.value.toFixed(0)}万吨`;
+                            if (params.name === '历史最低产量') return `📉 谷值 ${params.value.toFixed(0)}万吨`;
                             return `⚠️ 2003: ${params.value.toFixed(0)}万t`;
                         },
                         fontSize: 10,
