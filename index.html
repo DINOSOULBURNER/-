@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中国水稻产量交互式折线图 (1949-2024)</title>
+    <title>中国水稻产量、面积与亩产量变化趋势 (1949-2024)</title>
     <!-- 引入 ECharts 核心库 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
     <style>
@@ -15,20 +15,15 @@
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
             font-family: 'Segoe UI', 'Roboto', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 70vh;
-            padding: 24px;
+            padding: 20px;
         }
         .chart-container {
             max-width: 1400px;
-            width: 100%;
+            margin: 0 auto;
             background: white;
             border-radius: 28px;
             box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2);
             padding: 24px 20px 20px 20px;
-            transition: all 0.2s ease;
         }
         .header {
             margin-bottom: 16px;
@@ -36,23 +31,21 @@
             border-left: 6px solid #2d8c3c;
         }
         .header h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 600;
             color: #1e2f3e;
-            letter-spacing: -0.3px;
         }
         .header p {
             color: #5a6e7c;
             margin-top: 8px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .subnote {
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            margin-top: 12px;
-            margin-bottom: 12px;
+            margin: 12px 0;
             padding: 0 12px;
             font-size: 0.8rem;
             color: #5f7f9e;
@@ -64,7 +57,7 @@
         }
         #mainChart {
             width: 100%;
-            height: 550px;
+            height: 600px;
             margin-top: 8px;
         }
         .footer {
@@ -77,136 +70,147 @@
         }
         @media (max-width: 700px) {
             .chart-container { padding: 16px; }
-            .header h1 { font-size: 1.3rem; }
-            #mainChart { height: 400px; }
-        }
-        .tooltip-custom {
-            font-weight: 500;
+            .header h1 { font-size: 1.2rem; }
+            #mainChart { height: 500px; }
         }
     </style>
 </head>
 <body>
 <div class="chart-container">
     <div class="header">
-        <h1>🌾 中国水稻年产量变化趋势 (1949–2024)</h1>
-        <p>数据来源：国家统计局 / 历年农业统计资料 | 单位：万吨</p>
+        <h1>🌾 中国水稻生产趋势 (1949–2024)</h1>
+        <p>数据来源：国家统计局 | 总产量(万吨) / 种植面积(千公顷) / 亩产量(公斤/亩)</p>
     </div>
     <div class="subnote">
-        <!-- <span>📈 交互特性：鼠标拖拽平移、滚轮缩放、点击数据点查看详情</span>
-        <span class="legend-tip">✅ 折线图 + 面积填充效果</span> -->
+        <span>📈 交互特性：鼠标拖拽平移、滚轮缩放、点击图例显示/隐藏曲线</span>
+        <span class="legend-tip">✅ 三条折线均有最高点/最低点标记</span>
     </div>
-    <!-- ECharts 容器 -->
     <div id="mainChart"></div>
     <div class="footer">
-        ⚡ 注：1949–2024 年稻谷产量数据，包含2000年后完整统计。
+        ⚡ 注：亩产量 = (总产量 × 10000) ÷ (种植面积 × 15) 计算得出，单位公斤/亩<br>
+        💡 提示：点击图例可单独查看某项数据，🔝/📉 标记为各曲线的最高点和最低点
     </div>
 </div>
 
 <script>
-    // ----- 原始数据 (年份 : 产量 万吨) -----
+    // ----- 原始数据 [年份, 产量(万吨), 面积(千公顷)] -----
     const rawData = [
-        [1949, 4864.8], [1950, 5510.7], [1951, 6055.9], [1952, 6843.3], [1953, 7128],
-        [1954, 7086], [1955, 7803.1], [1956, 8248.7], [1957, 8678], [1958, 8085.3],
-        [1959, 6936.8], [1960, 5973.3], [1961, 5364.8], [1962, 6299.1], [1963, 7376.5],
-        [1964, 8300], [1965, 8772], [1966, 9539], [1967, 9368.5], [1968, 9453],
-        [1969, 9506.5], [1970, 10999], [1971, 11520.5], [1972, 11335.5], [1973, 12173.5],
-        [1974, 12390.5], [1975, 12556], [1976, 12580.5], [1977, 12856.5], [1978, 13693],
-        [1979, 14375], [1980, 13990.5], [1981, 14395.5], [1982, 16159.5], [1983, 16886.5],
-        [1984, 17825.5], [1985, 16856.9], [1986, 17222.4], [1987, 17441.6], [1988, 16910.74],
-        [1989, 18013], [1990, 18933.14], [1991, 18381.3], [1992, 18622.2], [1993, 17751.4],
-        [1994, 17593.3], [1995, 18522.6], [1996, 19510.27], [1997, 20073.48], [1998, 19871.3],
-        [1999, 19848.73], [2000, 18790.77], [2001, 17758.03], [2002, 17453.85], [2003, 16065.56],
-        [2004, 17908.76], [2005, 18058.84], [2006, 18171.83], [2007, 18638.11], [2008, 19261.22],
-        [2009, 19619.67], [2010, 19722.57], [2011, 20288.25], [2012, 20653.23], [2013, 20628.56],
-        [2014, 20960.91], [2015, 21214.19], [2016, 21109.42], [2017, 21267.59], [2018, 21212.9],
-        [2019, 20961.4], [2020, 21185.96], [2021, 21284.24], [2022, 20849.48], [2023, 20660.32],
-        [2024, 20753.49]
+        [1949, 4864.8, 25708.5], [1950, 5510.7, 26149.3], [1951, 6055.9, 26933.3], [1952, 6843.3, 28382.3],
+        [1953, 7128, 28321.1], [1954, 7086, 28721.8], [1955, 7803.1, 29173.4], [1956, 8248.7, 33311.8],
+        [1957, 8678, 32241.1], [1958, 8085.3, 31915.1], [1959, 6936.8, 29034.2], [1960, 5973.3, 29607.2],
+        [1961, 5364.8, 26275.9], [1962, 6299.1, 26934.5], [1963, 7376.5, 27715], [1964, 8300, 29606.6],
+        [1965, 8772, 29824.7], [1966, 9539, 30528.7], [1967, 9368.5, 30430.2], [1968, 9453, 29894],
+        [1969, 9506.5, 30432], [1970, 10999, 32358.1], [1971, 11520.5, 34918.3], [1972, 11335.5, 35142.5],
+        [1973, 12173.5, 35089.7], [1974, 12390.5, 35512], [1975, 12556, 35728.1], [1976, 12580.5, 36217.4],
+        [1977, 12856.5, 35526.1], [1978, 13693, 34420.87], [1979, 14375, 33872.67], [1980, 13990.5, 33878.47],
+        [1981, 14395.5, 33294.73], [1982, 16159.5, 33071.07], [1983, 16886.5, 33136.33], [1984, 17825.5, 33178.4],
+        [1985, 16856.9, 32070.07], [1986, 17222.4, 32266.13], [1987, 17441.6, 32192.8], [1988, 16910.74, 31987.47],
+        [1989, 18013, 32700.4], [1990, 18933.14, 33064.47], [1991, 18381.3, 32590], [1992, 18622.2, 32090.2],
+        [1993, 17751.4, 30355.2], [1994, 17593.3, 30171.4], [1995, 18522.6, 30744.1], [1996, 19510.27, 31406.77],
+        [1997, 20073.48, 31764.87], [1998, 19871.3, 31213.8], [1999, 19848.73, 31283.49], [2000, 18790.77, 29961.72],
+        [2001, 17758.03, 28812.38], [2002, 17453.85, 28201.6], [2003, 16065.56, 26507.83], [2004, 17908.76, 28378.8],
+        [2005, 18058.84, 28847.18], [2006, 18171.83, 28937.89], [2007, 18638.11, 28972.75], [2008, 19261.22, 29350.26],
+        [2009, 19619.67, 29793.01], [2010, 19722.57, 30096.87], [2011, 20288.25, 30338.41], [2012, 20653.23, 30475.97],
+        [2013, 20628.56, 30709.74], [2014, 20960.91, 30765.12], [2015, 21214.19, 30784.09], [2016, 21109.42, 30745.89],
+        [2017, 21267.59, 30747.19], [2018, 21212.9, 30189.45], [2019, 20961.4, 29693.52], [2020, 21185.96, 30075.53],
+        [2021, 21284.24, 29921.15], [2022, 20849.48, 29450.11], [2023, 20660.32, 28949.06], [2024, 20753.49, 29006.92]
     ];
 
-    // 提取年份数组和产量数组
+    // 提取年份、产量、面积，并计算亩产量
     const years = rawData.map(item => item[0]);
-    const outputs = rawData.map(item => item[1]);
+    const outputs = rawData.map(item => item[1]);      // 单位：万吨
+    const areas = rawData.map(item => item[2]);        // 单位：千公顷
+    
+    // 亩产量(公斤/亩) = (总产量(万吨) × 10000 × 1000) ÷ (种植面积(千公顷) × 1000 × 15)
+    // 简化公式：亩产量 = (产量 × 10000) / (面积 × 15)
+    const yieldPerMu = rawData.map(item => {
+        const outputWanTun = item[1];      // 万吨
+        const areaQianGongQing = item[2];  // 千公顷
+        const muYield = (outputWanTun * 10000) / (areaQianGongQing * 15);
+        return parseFloat(muYield.toFixed(1));
+    });
 
-    // 计算最大值用于Y轴动态微调
+    // 计算各数据的最小最大值
     const maxOutput = Math.max(...outputs);
     const minOutput = Math.min(...outputs);
-    const yAxisMax = Math.ceil(maxOutput / 1000) * 1000 + 500;   // 比如 21500 左右
-    const yAxisMin = Math.floor(minOutput / 500) * 500 - 500;    // 给底部留白，约 4300
+    const maxArea = Math.max(...areas);
+    const minArea = Math.min(...areas);
+    const maxYield = Math.max(...yieldPerMu);
+    const minYield = Math.min(...yieldPerMu);
+
+    // 动态设置Y轴范围，避免单位重叠
+    const outputRange = { min: Math.floor(minOutput / 1000) * 1000 - 1000, max: Math.ceil(maxOutput / 1000) * 1000 + 1000 };
+    const areaRange = { min: Math.floor(minArea / 5000) * 5000 - 5000, max: Math.ceil(maxArea / 5000) * 5000 + 5000 };
+    const yieldRange = { min: Math.floor(minYield / 50) * 50 - 50, max: Math.ceil(maxYield / 50) * 50 + 50 };
 
     // 初始化 ECharts
     const chartDom = document.getElementById('mainChart');
     const myChart = echarts.init(chartDom);
 
-    // 配置交互式折线图 (支持缩放/平移/数据点提示)
     const option = {
-        // 背景色透明，继承父级白色风格
         backgroundColor: 'transparent',
-        // 标题与工具箱 (缩放辅助)
         toolbox: {
             feature: {
-                dataZoom: {          // 数据缩放工具（框选缩放）
+                dataZoom: {
                     yAxisIndex: 'none',
-                    title: {
-                        zoom: '区域缩放',
-                        back: '还原'
-                    }
+                    title: { zoom: '区域缩放', back: '还原' }
                 },
-                restore: {          // 还原图表
-                    title: '重置'
-                },
-                saveAsImage: {      // 保存为图片
-                    title: '保存为图片',
-                    name: '中国水稻产量趋势图'
-                }
+                restore: { title: '重置' },
+                saveAsImage: { title: '保存为图片', name: '中国水稻生产趋势图' }
             },
             right: 20,
             top: 0,
             iconSize: 16
         },
-        // 提示框 (十字准星 + 数据格式化)
         tooltip: {
             trigger: 'axis',
-            axisPointer: {
-                type: 'shadow',    // 背景阴影指示，也可改为'line'更锐利
-                label: {
-                    backgroundColor: '#2d8c3c'
-                }
-            },
-            backgroundColor: 'rgba(20,25,35,0.9)',
+            axisPointer: { type: 'shadow' },
+            backgroundColor: 'rgba(20,25,35,0.92)',
             borderColor: '#2d8c3c',
             borderWidth: 2,
-            textStyle: {
-                color: '#f0f0f0',
-                fontSize: 12
-            },
+            textStyle: { color: '#f0f0f0', fontSize: 12 },
             formatter: function(params) {
                 if (!params || params.length === 0) return '';
-                const dataPoint = params[0];
-                const year = dataPoint.axisValue;
-                const value = dataPoint.value;
-                // 格式化产量，显示小数点后两位，并加单位
-                return `<strong>📅 ${year} 年</strong><br/>🌾 水稻产量: <span style="font-weight:bold;color:#f5b042;">${value.toFixed(2)}</span> 万吨`;
+                let result = `<strong>📅 ${params[0].axisValue} 年</strong><br/>`;
+                for (let i = 0; i < params.length; i++) {
+                    const p = params[i];
+                    const seriesName = p.seriesName;
+                    let value = p.value;
+                    let unit = '';
+                    if (seriesName === '稻谷总产量') {
+                        unit = ' 万吨';
+                        value = value.toFixed(2);
+                    } else if (seriesName === '种植面积') {
+                        unit = ' 千公顷';
+                        value = value.toFixed(2);
+                    } else if (seriesName === '亩产量') {
+                        unit = ' 公斤/亩';
+                        value = value.toFixed(1);
+                    }
+                    const color = p.color;
+                    result += `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+                    result += `${seriesName}: <span style="font-weight:bold;">${value}${unit}</span><br/>`;
+                }
+                return result;
             }
         },
-        // 图例 (显示产量趋势)
         legend: {
-            data: ['稻谷年产量 (万吨)'],
-            left: 'left',
+            data: ['稻谷总产量', '种植面积', '亩产量'],
+            left: 'center',      // 水平居中
+            top: 0,              // 顶部对齐
             icon: 'circle',
             textStyle: { color: '#2c3e44', fontWeight: '500' },
             itemWidth: 25,
             itemHeight: 12
         },
         grid: {
-            left: '6%',
-            right: '6%',
-            bottom: '8%',
-            top: '12%',
-            containLabel: false,
+            left: '8%',
+            right: '12%',        // 右侧留出更多空间避免Y轴单位重叠
+            bottom: '10%',
+            top: '15%',          // 顶部留出空间给图例
             backgroundColor: '#fefef9',
-            borderWidth: 0
+            containLabel: false
         },
-        // X轴: 年份 (角度倾斜防止重叠 + 支持缩放)
         xAxis: {
             type: 'category',
             data: years,
@@ -215,162 +219,200 @@
             nameGap: 35,
             axisLabel: {
                 rotate: 45,
-                interval: 'auto',     // 自动间隔，缩放时会自动调整密度
+                interval: 'auto',
                 fontSize: 10,
-                fontWeight: '400',
-                color: '#4a5b66',
-                showMinLabel: true,
-                showMaxLabel: true
+                color: '#4a5b66'
             },
             axisLine: { lineStyle: { color: '#8ba0ae', width: 1.5 } },
             axisTick: { show: false },
             splitLine: { show: false }
         },
-        // Y轴: 产量值（万吨）
-        yAxis: {
-            type: 'value',
-            name: '产量 (万吨)',
-            nameLocation: 'middle',
-            nameGap: 45,
-            min: yAxisMin > 4000 ? 4000 : yAxisMin,   // 历史最低五千左右，给一点空间
-            max: yAxisMax,
-            axisLabel: {
-                fontSize: 10,
-                formatter: function(value) {
-                    return value.toFixed(0);
-                }
+        yAxis: [
+            {
+                type: 'value',
+                name: '总产量 (万吨)',
+                nameLocation: 'middle',
+                nameGap: 45,
+                min: outputRange.min,
+                max: outputRange.max,
+                axisLabel: { fontSize: 10 },
+                splitLine: { lineStyle: { type: 'dashed', color: '#cdd9e6' } },
+                position: 'left'
             },
-            splitLine: {
-                lineStyle: { type: 'dashed', color: '#cdd9e6', width: 0.8 }
+            {
+                type: 'value',
+                name: '种植面积 (千公顷)',
+                nameLocation: 'middle',
+                nameGap: 50,
+                min: areaRange.min,
+                max: areaRange.max,
+                axisLabel: { fontSize: 10 },
+                splitLine: { show: false },
+                position: 'right',
+                offset: 0
             },
-            axisLine: { show: false },
-            axisTick: { show: false }
-        },
-        // 数据缩放区域 (交互核心: 允许鼠标滚轮/拖拽缩放)
+            {
+                type: 'value',
+                name: '亩产量 (公斤/亩)',
+                nameLocation: 'middle',
+                nameGap: 45,
+                min: yieldRange.min,
+                max: yieldRange.max,
+                axisLabel: { fontSize: 10 },
+                splitLine: { show: false },
+                position: 'right',
+                offset: 60              // 向右偏移60px，避免与种植面积的Y轴单位重叠
+            }
+        ],
         dataZoom: [
             {
-                type: 'inside',     // 内置型，通过鼠标滚轮和拖拽平移实现缩放
+                type: 'inside',
                 start: 0,
                 end: 100,
-                minValueSpan: 5,    // 最少显示5年跨度
+                minValueSpan: 5,
                 zoomOnMouseWheel: true,
-                moveOnMouseMove: true,
-                preventDefaultMouseMove: false
+                moveOnMouseMove: true
             },
             {
-                type: 'slider',     // 下方滑动条，方便直观缩放
+                type: 'slider',
                 start: 0,
                 end: 100,
                 bottom: 5,
                 height: 20,
                 borderColor: '#bdd4e2',
                 fillerColor: 'rgba(45, 140, 60, 0.2)',
-                handleStyle: { color: '#2d8c3c' },
-                textStyle: { color: '#2c5a6e' }
+                handleStyle: { color: '#2d8c3c' }
             }
         ],
-        // 系列: 折线图 + 面积渐变
         series: [
             {
-                name: '稻谷年产量 (万吨)',
+                name: '稻谷总产量',
                 type: 'line',
                 data: outputs,
-                smooth: false,          // 保持原始折线，更真实反映年度波动
+                smooth: false,
                 symbol: 'circle',
-                symbolSize: 5,
-                showSymbol: true,
-                lineStyle: {
-                    width: 2.8,
-                    color: '#2b7a3e',
-                    shadowBlur: 8,
-                    shadowColor: 'rgba(0,100,0,0.3)',
-                    type: 'solid'
-                },
-                // 高亮数据点
-                emphasis: {
-                    focus: 'series',
-                    scale: 1.2,
-                    lineStyle: { width: 4, color: '#e67e22' }
-                },
+                symbolSize: 4,
+                yAxisIndex: 0,
+                lineStyle: { width: 2.5, color: '#2b7a3e' },
                 areaStyle: {
                     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                        { offset: 0, color: 'rgba(65, 155, 75, 0.5)' },
-                        { offset: 0.6, color: 'rgba(105, 185, 95, 0.2)' },
-                        { offset: 1, color: 'rgba(225, 245, 220, 0.05)' }
+                        { offset: 0, color: 'rgba(43, 122, 62, 0.3)' },
+                        { offset: 1, color: 'rgba(43, 122, 62, 0.02)' }
                     ])
                 },
-                itemStyle: {
-                    color: '#1f6e2f',
-                    borderColor: '#ffffff',
-                    borderWidth: 1,
-                    shadowBlur: 3
-                },
-                // 标记特殊节点 (可选: 展示历年峰值或者2003年低谷)
+                itemStyle: { color: '#1f6e2f', borderColor: '#fff', borderWidth: 1 },
+                emphasis: { focus: 'series', scale: 1.2 },
                 markPoint: {
                     data: [
-                        { type: 'max', name: '历史最高产量', symbolSize: 18 },
-                        { type: 'min', name: '历史最低产量', symbolSize: 15 },
-                        { coord: [2003, 16065.56], name: '2003年低点', value: 16065.56 }
+                        { type: 'max', name: '产量最高点', symbolSize: 22 },
+                        { type: 'min', name: '产量最低点', symbolSize: 18 }
                     ],
                     symbol: 'circle',
-                    symbolSize: 16,
+                    symbolSize: 18,
                     label: {
                         formatter: function(params) {
-                            if (params.name === '历史最高产量') return `🔝 峰值 ${params.value.toFixed(0)}万吨`;
-                            if (params.name === '历史最低产量') return `📉 谷值 ${params.value.toFixed(0)}万吨`;
-                            return `⚠️ 2003: ${params.value.toFixed(0)}万t`;
+                            if (params.name === '产量最高点') return `🔝 ${params.value.toFixed(0)}万吨`;
+                            return `📉 ${params.value.toFixed(0)}万吨`;
                         },
-                        fontSize: 10,
-                        offset: [0, -18],
+                        fontSize: 9,
+                        offset: [0, -15],
                         backgroundColor: 'rgba(0,0,0,0.65)',
                         padding: [2, 6, 2, 6],
                         borderRadius: 12,
                         color: '#fff'
                     }
+                }
+            },
+            {
+                name: '种植面积',
+                type: 'line',
+                data: areas,
+                smooth: false,
+                symbol: 'diamond',
+                symbolSize: 4,
+                yAxisIndex: 1,
+                lineStyle: { width: 2.5, color: '#f39c12', type: 'solid' },
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(243, 156, 18, 0.2)' },
+                        { offset: 1, color: 'rgba(243, 156, 18, 0.01)' }
+                    ])
                 },
-                // 标记区域：展示近年高产平台 (可选，更美观)
-                markArea: {
-                    silent: true,
-                    itemStyle: { color: 'rgba(35, 140, 65, 0.08)' },
+                itemStyle: { color: '#e67e22', borderColor: '#fff', borderWidth: 1 },
+                emphasis: { focus: 'series', scale: 1.2 },
+                markPoint: {
                     data: [
-                        [{ xAxis: 2015, name: '高产稳定期' }, { xAxis: 2024 }]
+                        { type: 'max', name: '面积最高点', symbolSize: 22 },
+                        { type: 'min', name: '面积最低点', symbolSize: 18 }
                     ],
-                    label: { show: false }
+                    symbol: 'circle',
+                    symbolSize: 18,
+                    label: {
+                        formatter: function(params) {
+                            if (params.name === '面积最高点') return `🔝 ${params.value.toFixed(0)}千公顷`;
+                            return `📉 ${params.value.toFixed(0)}千公顷`;
+                        },
+                        fontSize: 9,
+                        offset: [0, -15],
+                        backgroundColor: 'rgba(0,0,0,0.65)',
+                        padding: [2, 6, 2, 6],
+                        borderRadius: 12,
+                        color: '#fff'
+                    }
+                }
+            },
+            {
+                name: '亩产量',
+                type: 'line',
+                data: yieldPerMu,
+                smooth: false,
+                symbol: 'triangle',
+                symbolSize: 4,
+                yAxisIndex: 2,
+                lineStyle: { width: 2.5, color: '#2980b9', type: 'solid' },
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(41, 128, 185, 0.2)' },
+                        { offset: 1, color: 'rgba(41, 128, 185, 0.01)' }
+                    ])
                 },
-                connectNulls: false,   // 数据无空缺
-                step: false,
-                zlevel: 1
+                itemStyle: { color: '#1a6da0', borderColor: '#fff', borderWidth: 1 },
+                emphasis: { focus: 'series', scale: 1.2 },
+                markPoint: {
+                    data: [
+                        { type: 'max', name: '亩产最高点', symbolSize: 22 },
+                        { type: 'min', name: '亩产最低点', symbolSize: 18 }
+                    ],
+                    symbol: 'circle',
+                    symbolSize: 18,
+                    label: {
+                        formatter: function(params) {
+                            if (params.name === '亩产最高点') return `🔝 ${params.value.toFixed(0)}公斤/亩`;
+                            return `📉 ${params.value.toFixed(0)}公斤/亩`;
+                        },
+                        fontSize: 9,
+                        offset: [0, -15],
+                        backgroundColor: 'rgba(0,0,0,0.65)',
+                        padding: [2, 6, 2, 6],
+                        borderRadius: 12,
+                        color: '#fff'
+                    }
+                }
             }
         ],
-        // 增加一个小注释: 在图表角落加个标
-        // | 稻谷总产突破2亿吨后高位波动
         graphic: [
             {
                 type: 'text',
-                left: '2%',
-                top: 20,
-                style: {
-                    text: '🏭 1949~2024 ',
-                    fill: '#6f8f9f',
-                    fontSize: 11,
-                    fontWeight: 'normal'
-                },
+                left: '1%',
+                top: 30,
+                style: { text: '📊 1949~2024', fill: '#6f8f9f', fontSize: 11 },
                 z: 100
             }
         ]
     };
 
-    // 应用配置
     myChart.setOption(option);
-
-    // 响应窗口尺寸变化
-    window.addEventListener('resize', function() {
-        myChart.resize();
-    });
-
-    // 额外：完全支持缩放后，如果用户想查看指定年代区间，可使用toolbox或滚动条。
-    // 由于我们同时配置了 inside + slider dataZoom，交互体验很棒
-    // console.log('交互折线图已加载，支持鼠标拖拽平移和滚轮缩放');
+    window.addEventListener('resize', () => myChart.resize());
 </script>
 </body>
 </html>
